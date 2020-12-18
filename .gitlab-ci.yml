@@ -1,0 +1,81 @@
+image: node:13.8.0
+
+cache:
+  paths:
+    - node_modules/
+    - .yarn
+
+before_script:
+  - apt-get update -qq && apt-get install
+
+stages:
+  - test
+  - build
+  - push_image
+  - deploy
+
+Test:
+  stage: test
+  before_script:
+    - yarn --registry https://registry.npm.taobao.org/
+  script:
+    - yarn test --coverage
+  coverage: /All\sfiles.*?\s+(\d+.\d+)/
+  only:
+    - merge_requests
+    - dev
+  except:
+    - schedules
+
+Build:
+  stage: build
+  only:
+    - dev
+    - master
+    - merge_requests
+  before_script:
+    - yarn config set cache-folder .yarn
+    - yarn --registry https://registry.npm.taobao.org/
+  script:
+    - export PROROOT=`pwd`
+    - cd $PROROOT/config
+    - yarn build
+  artifacts:
+    paths:
+      - build/
+
+Push_image:
+  image: docker:18.03.0
+  stage: push_image
+  only:
+    - master
+    - dev
+  before_script:
+    - export PROROOT=`pwd`
+  script:
+    - docker build -t xl.image:5000/IMAGE-NAME_${CI_COMMIT_SHA} -f config/Dockerfile .
+    - docker push xl.image:5000/IMAGE-NAME_${CI_COMMIT_SHA}
+
+Deploy:
+  image: roffe/kubectl
+  stage: deploy
+  only:
+    - master
+    - dev
+  before_script:
+    - if [[ "${CI_COMMIT_REF_NAME}" == "dev" ]]; then export PROENV=ENVORIMENT; export PROPORT=PORT; fi;
+    - if [[ "${CI_COMMIT_REF_NAME}" == "master" ]]; then export PROENV=ENVORIMENT; export PROPORT=PORT; fi
+    - export PROROOT=`pwd`
+    - mkdir -p tmp
+    - cp $PROROOT/config/deploy.yaml $PROROOT/tmp/deploy.yaml
+    - cd $PROROOT/tmp
+    - sed -i "s/_image_name_var_/xl.image:5000\/IMAGE-NAME_${CI_COMMIT_SHA}/g" deploy.yaml
+    - sed -i "s/_namespace_var_/${PROENV}/g" deploy.yaml
+    - sed -i "s/_db_env_var_/\"${PROENV}\"/g" deploy.yaml
+    - sed -i "s/_docker_env_var_/\"1\"/g" deploy.yaml
+    - sed -i "s/_run_env_var_/\"${PROENV}\"/g" deploy.yaml
+    - sed -i "s/_external_port_/${PROPORT}/g" deploy.yaml
+  script:
+    - cat deploy.yaml
+    - kubectl version --insecure-skip-tls-verify=true --server=${K8S_ADDR} --token=${K8S_TOKEN}
+    - kubectl apply -f deploy.yaml --insecure-skip-tls-verify=true --server=${K8S_ADDR} --token=${K8S_TOKEN}

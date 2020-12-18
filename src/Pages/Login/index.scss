@@ -1,0 +1,22 @@
+@import '~Global/style.scss';
+.login {
+  margin-top: 100px;
+  .form {
+    width: 368px;
+    margin: 0 auto;
+
+    @media screen and (max-width: $screen-sm) {
+      width: 95%;
+    }
+  }
+  .logo {
+    display: block;
+    width: 500px;
+    margin: 0 auto;
+    margin-top: 50px;
+    margin-bottom: 50px;
+  }
+  .submit-button {
+    width: 100%;
+  }
+}

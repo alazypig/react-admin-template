@@ -1,0 +1,17 @@
+.slider-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  .slide-container {
+    display: flex;
+    position: relative;
+    overflow: hidden;
+    .slide-block {
+      display: flex;
+      justify-content: center;
+      position: absolute;
+      white-space: nowrap;
+      transition: linear 0.2s;
+    }
+  }
+}

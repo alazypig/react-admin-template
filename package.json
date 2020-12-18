@@ -85,7 +85,7 @@
     "lint-staged": "^10.0.8",
     "prettier": "^1.19.1"
   },
-  "proxy": "XG-PROXY",
+  "proxy": "",
   "jest": {
     "testEnvironment": "jest-environment-jsdom-thirteen"
   }
